@@ -21,6 +21,8 @@ def retry(max_retries, interval):
         return wrapper
     return decorator
 
+
+
 #使用例
 @retry(max_retries = 5, interval=5)
 def my_function():
