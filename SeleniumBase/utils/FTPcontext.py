@@ -13,12 +13,15 @@ class FTPProcessor:
     ftp_processor.disconnect()
     '''
 
-    def __init__(self, ftp_host, ftp_port=21, ftp_user=None, ftp_password=None):
+    def __init__(self, ftp_host, ftp_port=21, ftp_user=None, ftp_password=None ,logger=None):
         self.ftp_host = ftp_host
         self.ftp_port = ftp_port
         self.ftp_user = ftp_user
         self.ftp_password = ftp_password
         self.ftp = None  # FTPオブジェクトの初期化
+        
+        #ロガー設定
+        self.logger = logger
 
         self.connect()
 
@@ -30,17 +33,22 @@ class FTPProcessor:
             print(f"Connected to {self.ftp_host}:{self.ftp_port}")
         except Exception as e:
             print(f"Error connecting to FTP server: {e}")
-
-    def show_list(self):
+            
+    def set_logger(self, logger):
+        self.logger = logger
+    
+    def get_list(self):
         '''
         リストを表示させる方法。戻り値はlist[str]
         '''
         
         return self.ftp.retrlines('LIST')
 
+    def show_list(self):
+        if self.logger != None:
+            self.logger.debug(self.ftp.retrlines('LIST'))
 
     def download(self):
-
         pass
     
     def upload(self):
