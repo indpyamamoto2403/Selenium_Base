@@ -2,7 +2,7 @@ import logging
 import traceback
 
 class LoggerBase:
-    def __init__(self, name):
+    def __init__(self, name:str):
         self.logger = logging.getLogger(name)
         self.error_logger = logging.getLogger("error")
         self.logger.setLevel(logging.DEBUG)
