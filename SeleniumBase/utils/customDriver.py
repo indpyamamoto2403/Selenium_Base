@@ -1,7 +1,7 @@
-
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.select import Select
 from selenium.webdriver.common.action_chains import ActionChains
@@ -9,6 +9,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.edge.options import Options
 from selenium.common.exceptions import TimeoutException
 import time, datetime
+from typing import Callable
 import os, csv
 
 class customDriver:
@@ -26,44 +27,37 @@ class customDriver:
     def __init__(self, 
                  download_dir = None):
 
-
         options = Options()
-        options.add_argument('--start-maximized')
-        options.add_argument('--disable-popup-blocking')
-        options.add_argument('--log-level=3')
-        if download_dir != None:
+        arguments = ['--start-maximized','--disable-popup-blocking','--log-level=3']
+        list(map(options.add_argument, arguments))
+        if download_dir is not None:
             options.add_experimental_option('prefs', {'download.default_directory': download_dir})
             self.download_dir = download_dir
         self.driver = webdriver.Edge(options = options)
-        self.wait = WebDriverWait(self.driver,self.wait_time)
+        self.wait = WebDriverWait(self.driver, self.wait_time)
 
-            
-    def open(self,URL:str):
+    def open(self, URL: str):
         '''
         引数:URL
         '''
         self.driver.get(URL)        
 
-    def input(self, 
-              By:By, 
-              element:str, 
-              text:str,
-              submit:bool=False):
+    def waitable(self, By: By, element: str) -> WebElement:
+        return self.wait.until(EC.presence_of_element_located((By, element)))
+
+    def input(self, By: By, element: str, text: str, submit: bool = False):
         '''
         引数,
         By: Byオブジェクト。ID or Class, Name, XPath, CSSセレクターなどを指定する。
         element: elementの識別文字。Id名やclass名など
         text: テキストボックスやテキストエリアに入力する文字。
         '''            
-        box = self.wait.until(EC.presence_of_element_located((By, element)))
+        box = self.waitable(By, element)
         box.send_keys(text)
-        if submit == True:
+        if submit:
             box.submit()
 
-    def click(self, 
-              By:By, 
-              element:str, 
-              press_ctrl:bool=False):
+    def click(self, By: By, element: str, press_ctrl: bool = False):
         '''
         対象の要素をクリックする関数。
         引数,
@@ -71,19 +65,17 @@ class customDriver:
         element: 要素の識別文字。Id名やclass名など
         press_ctrl: コントロールキーを押しながらのクリックができる。デフォルトはFalse
         '''    
-        obj = self.wait.until(EC.presence_of_element_located((By, element)))
-        if press_ctrl == True:
+        obj = self.waitable(By, element)
+        if press_ctrl:
             actions = ActionChains(self.driver)
             actions.key_down(Keys.CONTROL)
             actions.click(obj)
+            actions.key_up(Keys.CONTROL)
             actions.perform()
         else:
             obj.click()
     
-
-    def exists(self,
-               By:By,
-               element:str)->bool:
+    def exists(self, By: By, element: str) -> bool:
         '''
         要素があるかどうかを,bool値で返すメソッド
         By: Byオブジェクト。ID or Class, Name, XPath, CSSセレクターなどを指定する。
@@ -91,92 +83,74 @@ class customDriver:
         text: テキストボックスやテキストエリアに選択する文字
         '''
         try:
-            obj = self.wait.until(EC.presence_of_element_located((By, element)))
+            self.waitable(By, element)
             return True
-        except:
+        except TimeoutException:
             return False
 
-
-
-    def select(self,
-               By:By,
-               element:str,
-               value:str):
+    def select(self, By: By, element: str, value: str):
         '''
         By: Byオブジェクト。ID or Class, Name, XPath, CSSセレクターなどを指定する。
         element: プルダウンのelementの識別文字。Id名やclass名など
         text: テキストボックスやテキストエリアに選択する文字
         '''
-        pulldown = self.wait.until(EC.presence_of_element_located((By, element)))
+        pulldown = self.waitable(By, element)
         select = Select(pulldown)
         select.select_by_value(value)
 
-
-    def select_by_index(self,
-                By:By,
-                element:str,
-                index:int):
+    def select_by_index(self, By: By, element: str, index: int):
         '''
         By: Byオブジェクト。ID or Class, Name, XPath, CSSセレクターなどを指定する。
         element: プルダウンのelementの識別文字。Id名やclass名など
         text: テキストボックスやテキストエリアに選択する文字
         '''
-        pulldown = self.wait.until(EC.presence_of_element_located((By, element)))
+        pulldown = self.waitable(By, element)
         select = Select(pulldown)
         select.select_by_index(index)
     
-    def select_by_text(self,
-                By:By,
-                element:str,
-                text:str):
+    def select_by_text(self, By: By, element: str, text: str):
         '''
         By: Byオブジェクト。ID or Class, Name, XPath, CSSセレクターなどを指定する。
         element: プルダウンのelementの識別文字。Id名やclass名など
         text: テキストボックスやテキストエリアに選択する文字
         '''
-        if text == None:
+        if not text:
             return
-        pulldown = self.wait.until(EC.presence_of_element_located((By, element)))
+        pulldown = self.waitable(By, element)
         select = Select(pulldown)
         select.select_by_visible_text(text)
 
-    def accept_alert(self)->None:
+    def accept_alert(self) -> None:
         '''
         アラートをAcceptする。現れるまで最大10秒待機する。
         '''
         try:
-            time.sleep(5)
             alert = self.wait.until(EC.alert_is_present())
-            self.driver.switch_to.alert
             alert.accept()
-            time.sleep(1)
         except TimeoutException as e:
             print(e)
             
-    
-    def cancel_alert(self)->None:
+    def cancel_alert(self) -> None:
         '''
         アラートをCancelする。現れるまで最大10秒待機する。
         '''
         try:
             alert = self.wait.until(EC.alert_is_present())
-            alert = self.driver.switch_to.alert
-            alert.accept()
-            time.sleep(1)
+            alert.dismiss()
         except TimeoutException as e:
             print(e)
 
-    def alert_exists(self)->bool:
+    def alert_exists(self) -> bool:
         '''
         alertが存在するかどうかの確認。標準待機時間ほど待機し、見つかったかどうかをbool値で返す。
         '''
         try:
-            alert = self.wait.until(EC.alert_is_present())
+            self.wait.until(EC.alert_is_present())
             return True
-        except:
+        except TimeoutException:
             return False
 
-    def switch_window(self, mode:str="next"):
+    def switch_window(self, mode: str = "next"):
         '''
         アクティブなウインドウを切り替える。
         引数:
@@ -186,30 +160,22 @@ class customDriver:
         current_window_handle = self.driver.current_window_handle
         all_window_handles = self.driver.window_handles
         if mode == "next":
-            # 次のウィンドウに切り替える
             next_index = (all_window_handles.index(current_window_handle) + 1) % len(all_window_handles)
             new_window_handle = all_window_handles[next_index]
             self.driver.switch_to.window(new_window_handle)
-
         elif mode == "prev":
-            # 前のウィンドウに切り替える
             prev_index = (all_window_handles.index(current_window_handle) - 1) % len(all_window_handles)
             new_window_handle = all_window_handles[prev_index]
             self.driver.switch_to.window(new_window_handle)
-
         elif mode == "first":
-            # 最初のウィンドウに切り替える
             first_window_handle = all_window_handles[0]
             self.driver.switch_to.window(first_window_handle)
-
-            # 最初のウィンドウ以外を閉じる
             for handle in all_window_handles[1:]:
                 self.driver.switch_to.window(handle)
                 self.driver.close()
-            # 最初のウィンドウにフォーカスを戻す
             self.driver.switch_to.window(first_window_handle)
-    
-    def resize_window(self, mode:str):
+
+    def resize_window(self, mode: str):
         '''
         ブラウザのサイズを最小化したり最大化したりする。
         引数:mode "max":最大化, "min":最小化 
@@ -223,19 +189,18 @@ class customDriver:
 
     def run_script(self, script: str):
         '''
-        ページ内のJvascriptを直接実行する。
-        
+        ページ内のJavascriptを直接実行する。
         '''
         self.driver.execute_script(script)
     
-    def scroll_to_element(self, By:By, element:str):
+    def scroll_to_element(self, By: By, element: str):
         '''
         要素を自動でスクロールを行う。
         引数:
         By: Byオブジェクト。Elementの種類
         element: 要素の識別文字。
         '''
-        obj = self.wait.until(EC.presence_of_element_located((By, element)))
+        obj = self.waitable(By, element)
         actions = ActionChains(self.driver)
         actions.move_to_element(obj).perform()
     
@@ -246,7 +211,7 @@ class customDriver:
         By: Byオブジェクト。Elementの種類
         element: 要素の識別文字。
         '''
-        obj = self.wait.until(EC.presence_of_element_located((By, element)))
+        obj = self.waitable(By, element)
         actions = ActionChains(self.driver)
         actions.move_to_element(obj).perform()
     
@@ -265,10 +230,9 @@ class customDriver:
         引数:
         By: Byオブジェクト。Elementの種類
         element: 要素の識別文字。
-        filepath: ファイルのパス。        
+        file_path: ファイルのパス。        
         '''
-        obj = self.wait.until(EC.presence_of_element_located((By, element)))
-        #obj = self.driver.find_element(By, element)
+        obj = self.waitable(By, element)
         obj.send_keys(file_path)
 
     def scroll_down(self):
@@ -278,7 +242,7 @@ class customDriver:
         '''
         self.run_script('window.scrollTo(0, document.body.scrollHeight);')
 
-    def snap(self, folder:str, file_name:str, name_as_timestamp=False):
+    def snap(self, folder: str, file_name: str, name_as_timestamp=False):
         '''
         スクリーンショットを撮影する。
         folder:フォルダ名(str)
@@ -287,8 +251,7 @@ class customDriver:
         Trueにした場合、ファイル名に本日の日付をスタンプしたpngファイルが得られる。
         '''
         
-        #本日のタイムスタンプを押せるかどうかをオプションで選べる。
-        if name_as_timestamp == True:
+        if name_as_timestamp:
             _now = datetime.datetime.now()
             _today_with_time = _now.strftime("%Y_%m_%d-%H_%M_%S")
             file_name = file_name + _today_with_time
@@ -304,7 +267,7 @@ class customDriver:
         ファイルをアップロードする。
         ボタンの要素を取得し、ファイルのフルパスを送信する。
         '''
-        obj = self.wait.until(EC.presence_of_element_located((By, element)))
+        obj = self.waitable(By, element)
         obj.send_keys(file_path)
     
     def hard_click(self, By: By, element: str):
@@ -315,11 +278,9 @@ class customDriver:
         By: Byオブジェクト。Elementの種類
         element: 要素の識別文字。
         '''
-        obj = self.wait.until(EC.presence_of_element_located((By, element)))
-        actions = ActionChains(self.driver)
+        obj:WebElement = self.waitable(By, element)
+        actions:ActionChains = ActionChains(self.driver)
         actions.move_to_element(obj).click(obj).perform()
-
-
 
     def close(self):
         '''
@@ -341,8 +302,8 @@ class customDriver:
                 self.close()
                 time.sleep(1)
             
-    def clear(self, By, element):
-        box = self.wait.until(EC.presence_of_element_located((By, element)))
+    def clear(self, By: By, element: str):
+        box:WebElement = self.waitable(By, element)
         box.clear()
 
     def destroy(self):
