@@ -9,5 +9,5 @@ except Exception as e:
     print("error")
     
 
-print(9)
+print(6)
     
