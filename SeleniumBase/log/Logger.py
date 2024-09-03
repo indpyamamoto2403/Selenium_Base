@@ -72,7 +72,7 @@ if __name__ == "__main__":
         logger.warn("Warning message")
         1/0
     except Exception as e:
-        print("ここから下エラーメッセージ")
+        print("ここからエラーメッセージ")
         logger.debug("Debug message") 
         logger.error("Error message")
         logger.critical("Critical message")
