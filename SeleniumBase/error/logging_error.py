@@ -3,10 +3,10 @@ import datetime
 import traceback
     
 def error_logging(e, exe_print = False):
-    error_type = type(e).__name__  # エラータイプを取得
-    error_message = str(e)  # エラーメッセージを取得
-    timestamp = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')  # タイムスタンプを取得
-    error_traceback = traceback.format_exc()  # エラーのトレースバック情報を取得
+    error_type = type(e).__name__  # エラータイプ
+    error_message = str(e)  # エラーメッセージ
+    timestamp = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')  # タイムスタンプ
+    error_traceback = traceback.format_exc()  # エラーのトレースバック情報
 
     # エラーデータを logging_error.py に渡す
     #subprocess.run(["python", "error\\logging_error.py", error_type, error_message, timestamp, error_traceback])
